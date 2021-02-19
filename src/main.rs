@@ -75,6 +75,7 @@ impl fmt::Display for PermissionsMask{
 }
 
 struct FileMetadata {
+    name: String,
     permissions: PermissionsMask,
     size: u64,
     is_dir: bool,
@@ -84,7 +85,7 @@ struct FileMetadata {
 
 impl fmt::Display for FileMetadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} ", if self.is_dir { 'd' } else { '.' })?;
+        write!(f, "{}", if self.is_dir { 'd' } else { '.' })?;
         write!(f, "{} ", self.permissions)?;
         write!(f, "{:<8} ", self.size)?;
 
@@ -100,20 +101,23 @@ impl fmt::Display for FileMetadata {
         let date: DateTime<Local> = self.mtime.into();
         // TODO: Move to a seperate type
         if (date - Local::now()) > Duration::seconds( 24 * 60 * 60 ) {
-            write!(f, "{:<8} ", date.format("%d %b %Y"))
+            write!(f, "{:<8} ", date.format("%d %b %Y"))?;
         } else {
-            write!(f, "{:<8} ", date.format("%d %b %H:%M"))
+            write!(f, "{:<8} ", date.format("%d %b %H:%M"))?;
         }
+        write!(f, "{:<16}", self.name)
     }
 }
 
 fn get_meta(p: &Path) -> Option<FileMetadata> {
     if let Ok(f) = fs::metadata(p) {
+        let name = p.file_name().unwrap().to_str().unwrap().to_string();
         let size = f.len();
         let uid = f.uid();
         let mode = f.permissions().mode();
         if let Ok(mtime) = f.modified() {
             return Some(FileMetadata {
+                name,
                 permissions: PermissionsMask { bits: mode },
                 size,
                 mtime,
@@ -129,10 +133,8 @@ fn list_dirs() -> Result<(), io::Error>{
     let path = std::env::current_dir()?;
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
-            if let Some(x) = entry.file_name().to_str() {
-                if let Some(meta) = get_meta(&entry.path()) {
-                    println!("{} {}", meta, x)
-                }
+            if let Some(meta) = get_meta(&entry.path()) {
+                println!("{}", meta)
             }
         }
     }
