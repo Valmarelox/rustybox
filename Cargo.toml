@@ -1,0 +1,12 @@
+[package]
+name = "rustybox"
+version = "0.1.0"
+authors = ["Efi Weiss <valmarelox@email.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bitflags = "1.2.1"
+chrono = "0.4.19"
+users = "0.11.0"
