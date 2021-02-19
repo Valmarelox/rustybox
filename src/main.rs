@@ -1,15 +1,12 @@
 use std::{fs, fmt};
-use std::env;
 
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
-use std::fmt::{Error, Debug, Formatter};
+use std::path::Path;
+use std::fmt::Formatter;
 use std::io;
-use std::fs::Permissions;
 use std::time::SystemTime;
 extern crate chrono;
-use chrono::offset::Utc;
 use chrono::{DateTime, Local, Duration};
 use users::get_user_by_uid;
 
@@ -71,8 +68,8 @@ impl fmt::Display for FilePermissions {
 }
 impl fmt::Display for PermissionsMask{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.user());
-        write!(f, "{}", self.group());
+        write!(f, "{}", self.user())?;
+        write!(f, "{}", self.group())?;
         write!(f, "{}", self.other())
     }
 }
@@ -114,22 +111,21 @@ fn get_meta(p: &Path) -> Option<FileMetadata> {
     if let Ok(f) = fs::metadata(p) {
         let size = f.len();
         let uid = f.uid();
+        let mode = f.permissions().mode();
         if let Ok(mtime) = f.modified() {
-            if let mode = f.permissions().mode() {
-                return Some(FileMetadata {
-                    permissions: PermissionsMask { bits: mode },
-                    size,
-                    mtime,
-                    uid,
-                    is_dir: f.is_dir(),
-                });
-            }
+            return Some(FileMetadata {
+                permissions: PermissionsMask { bits: mode },
+                size,
+                mtime,
+                uid,
+                is_dir: f.is_dir(),
+            });
         }
     }
     return None;
 }
 
-fn list_dirs() -> Result<String, io::Error>{
+fn list_dirs() -> Result<(), io::Error>{
     let path = std::env::current_dir()?;
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
@@ -140,11 +136,10 @@ fn list_dirs() -> Result<String, io::Error>{
             }
         }
     }
-    Ok(("S".to_string()))
+    Ok(())
 }
 
 
-fn main() {
-    list_dirs();
-    println!("Hello, world!");
+fn main() -> Result<(), std::io::Error> {
+    list_dirs()
 }
