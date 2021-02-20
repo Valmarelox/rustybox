@@ -82,23 +82,47 @@ pub fn get_meta(p: &Path) -> Option<FileMetadata> {
 mod tests {
     use std::io;
     use std::path::PathBuf;
-    use std::process::Command;
+    use std::process::{Command, Output};
 
     use users::get_current_uid;
     use super::FileType;
     use super::get_meta;
     use super::PermissionsMask;
+    use std::fs::set_permissions;
 
+    struct TestCaseData {
+        path: String,
+        name: String,
+        size: u64,
+        permissions: PermissionsMask,
+        uid: u32
+    }
+
+    fn create_file(data: &TestCaseData) -> Output {
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("truncate -s{size} {name}; chmod {permissions} {name}", size=data.size, name=data.path, permissions="0644"))
+            .output()
+            .expect("failed to execute process")
+    }
+
+    fn setup_test() -> TestCaseData {
+        let case = TestCaseData {
+            path: "/tmp/a".to_string(),
+            name: "a".to_string(),
+            size: 4,
+            permissions: PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
+                PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH,
+            uid: get_current_uid()
+        };
+        create_file(&case);
+        case
+    }
 
     #[test]
     fn test_current_file_metadata() -> Result<(), io::Error>{
-        Command::new("sh")
-            .arg("-c")
-            .arg("truncate -s4 /tmp/a; chmod 0644 /tmp/a")
-            .output()
-            .expect("failed to execute process");
-        let good_uid: u32 = get_current_uid();
-        let meta = get_meta(&PathBuf::from("/tmp/a"));
+        let case = setup_test();
+        let meta = get_meta(&PathBuf::from(case.path));
         match meta {
             Some(meta) => {
                 assert_eq!(meta.file_type, FileType::RegularFile);
@@ -108,9 +132,9 @@ mod tests {
                            PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
                                PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH
                 );
-                assert_eq!(meta.uid, good_uid);
-                assert_eq!(meta.size, 4);
-                assert_eq!(meta.name, "a");
+                assert_eq!(meta.uid, case.uid);
+                assert_eq!(meta.size, case.size);
+                assert_eq!(meta.name, case.name);
             }
             None => assert!(false)
         }

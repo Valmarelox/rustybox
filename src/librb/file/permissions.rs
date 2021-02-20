@@ -52,3 +52,17 @@ impl fmt::Display for PermissionsMask{
         write!(f, "{}", self.other())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::FilePermissions;
+
+    #[test]
+    fn test_bitflags() {
+        let p = FilePermissions::PF_R.bits;
+        assert_eq!(FilePermissions::PF_R.bits, 4);
+        assert_eq!(FilePermissions::PF_X.bits, 1);
+        assert_eq!(FilePermissions::PF_W.bits, 2);
+        assert_eq!((FilePermissions::PF_W | FilePermissions::PF_X | FilePermissions::PF_R).bits, 7);
+    }
+}
