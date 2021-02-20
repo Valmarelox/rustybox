@@ -2,13 +2,14 @@ use std::{fs, fmt};
 
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::fs::MetadataExt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::fmt::Formatter;
 use std::io;
 use std::time::SystemTime;
 extern crate chrono;
 use chrono::{DateTime, Local, Duration};
 use users::get_user_by_uid;
+use clap::{Arg, App, ArgMatches, Values};
 
 #[macro_use]
 extern crate bitflags;
@@ -83,6 +84,12 @@ struct FileMetadata {
     uid: u32
 }
 
+impl FileMetadata {
+    fn is_hidden(&self) -> bool {
+        self.name.starts_with(".")
+    }
+}
+
 impl fmt::Display for FileMetadata {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", if self.is_dir { 'd' } else { '.' })?;
@@ -129,19 +136,91 @@ fn get_meta(p: &Path) -> Option<FileMetadata> {
     return None;
 }
 
-fn list_dirs() -> Result<(), io::Error>{
-    let path = std::env::current_dir()?;
+struct DisplayFormat {
+    show_hidden: bool,
+    color: String
+}
+
+impl DisplayFormat {
+    fn should_diplay(&self, f: &FileMetadata) -> bool {
+        (!f.is_hidden() || self.show_hidden)
+    }
+}
+
+fn list_dirs(path: &PathBuf, fmt: &DisplayFormat) -> Result<(), io::Error>{
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
             if let Some(meta) = get_meta(&entry.path()) {
-                println!("{}", meta)
+                if fmt.should_diplay(&meta) {
+                    println!("{}", meta)
+                }
             }
         }
     }
     Ok(())
 }
 
+fn build_display_fmt(matches: &ArgMatches) -> DisplayFormat {
+    DisplayFormat {
+        show_hidden: matches.is_present("all"),
+        color: matches.value_of("color").unwrap_or("auto").to_string()
+    }
+}
+
+fn print_dirs(dirs: Option<Values>, fmt: &DisplayFormat) -> Result<(), std::io::Error> {
+    match dirs {
+        Some(dirs) => {
+            for dir in dirs {
+                let path = PathBuf::from(dir);
+                list_dirs(&path, &fmt)?;
+                println!("");
+            }
+        }
+        None => {
+            list_dirs(&std::env::current_dir()?, &fmt)?;
+        }
+    }
+    Ok(())
+}
+
+fn get_arguments() -> ArgMatches<'static>  {
+    App::new("rustybox")
+        .version("0.0.1")
+        .author("Efi Weiss <valmarelox@gmail.com>")
+        .about("A not that busy (yet!) and still a bit rusty box")
+        .arg(
+            Arg::with_name("all").short("-a").long("-all").takes_value(false).help("show hidden and 'dot' files")
+        ).arg(
+            Arg::with_name("color").short("-c").long("-color").takes_value(true).possible_values(&["never", "auto", "always"]).help("show hidden and 'dot' files")
+        ).arg(
+            Arg::with_name("directories").multiple(true)
+    ).get_matches()
+}
 
 fn main() -> Result<(), std::io::Error> {
-    list_dirs()
+    let matches = get_arguments();
+    let fmt = build_display_fmt(&matches);
+    let dirs = matches.values_of("directories");
+    print_dirs(dirs, &fmt)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_current_file_metadata() -> Result<(), io::Error>{
+        let meta = get_meta(&PathBuf::from("/tmp/a"));
+        match meta {
+            Some(meta) => {
+                assert_eq!(meta.is_dir, false);
+                // TODO: What is the highest bit?
+                assert_eq!(meta.permissions.bits, 0o100664);
+                assert_eq!(meta.uid, 1000);
+                assert_eq!(meta.size, 4);
+                assert_eq!(meta.name, "a");
+            }
+            None => assert!(false)
+        }
+        Ok(())
+    }
 }
