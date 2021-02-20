@@ -213,7 +213,7 @@ mod tests {
     fn test_current_file_metadata() -> Result<(), io::Error>{
         Command::new("sh")
             .arg("-c")
-            .arg("truncate -s4 /tmp/a")
+            .arg("truncate -s4 /tmp/a; chmod 0644 /tmp/a")
             .output()
             .expect("failed to execute process");
         let meta = get_meta(&PathBuf::from("/tmp/a"));
@@ -221,7 +221,8 @@ mod tests {
             Some(meta) => {
                 assert_eq!(meta.is_dir, false);
                 // TODO: What is the highest bit?
-                assert_eq!(meta.permissions.bits, 0o100664);
+                // TODO: also this is bad that this is hardcoded
+                assert_eq!(meta.permissions.bits, 0o100644);
                 assert_eq!(meta.uid, 1000);
                 assert_eq!(meta.size, 4);
                 assert_eq!(meta.name, "a");
