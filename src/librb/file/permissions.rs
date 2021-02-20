@@ -58,11 +58,21 @@ mod tests {
     use super::FilePermissions;
 
     #[test]
-    fn test_bitflags() {
-        let p = FilePermissions::PF_R.bits;
+    fn test_file_permissions_values() {
         assert_eq!(FilePermissions::PF_R.bits, 4);
         assert_eq!(FilePermissions::PF_X.bits, 1);
         assert_eq!(FilePermissions::PF_W.bits, 2);
         assert_eq!((FilePermissions::PF_W | FilePermissions::PF_X | FilePermissions::PF_R).bits, 7);
+    }
+    #[test]
+    fn test_file_permissions_format() {
+        assert_eq!(format!("{}", (FilePermissions::PF_R)), "r--");
+        assert_eq!(format!("{}", (FilePermissions::PF_W)), "-w-");
+        assert_eq!(format!("{}", (FilePermissions::PF_R | FilePermissions::PF_W)), "rw-");
+        assert_eq!(format!("{}", (FilePermissions::PF_X)), "--x");
+        assert_eq!(format!("{}", (FilePermissions::PF_R | FilePermissions::PF_X)), "r-x");
+        assert_eq!(format!("{}", (FilePermissions::PF_W | FilePermissions::PF_X)), "-wx");
+        assert_eq!(format!("{}", (FilePermissions::PF_R | FilePermissions::PF_W | FilePermissions::PF_X)), "rwx");
+
     }
 }
