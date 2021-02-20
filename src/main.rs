@@ -207,8 +207,15 @@ fn main() -> Result<(), std::io::Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
+
     #[test]
     fn test_current_file_metadata() -> Result<(), io::Error>{
+        Command::new("sh")
+            .arg("-c")
+            .arg("truncate -s4 /tmp/a")
+            .output()
+            .expect("failed to execute process");
         let meta = get_meta(&PathBuf::from("/tmp/a"));
         match meta {
             Some(meta) => {
