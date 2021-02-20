@@ -1,13 +1,13 @@
 use std::io;
 use std::path::PathBuf;
 use std::str::FromStr;
-
 use clap::{App, Arg, ArgMatches, Values};
 use strum_macros::EnumString;
 
-use filemeta::FileMetadata;
+mod librb;
+use librb::file::filemeta::FileMetadata;
+use librb::file::filemeta::get_meta;
 
-mod filemeta;
 
 extern crate chrono;
 extern crate strum;
@@ -43,7 +43,7 @@ impl DisplayFormat {
 fn list_dirs(path: &PathBuf, fmt: &DisplayFormat) -> Result<(), io::Error>{
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
-            if let Some(meta) = filemeta::get_meta(&entry.path()) {
+            if let Some(meta) = get_meta(&entry.path()) {
                 if fmt.should_diplay(&meta) {
                     println!("{}", meta)
                 }
