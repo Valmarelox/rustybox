@@ -25,15 +25,12 @@ bitflags! {
 }
 
 impl PermissionsMask {
-    pub fn user(&self) -> FilePermissions {
-        FilePermissions{bits: (self.bits >> 6) & 0o7}
+    fn _get_bits(&self, shift: u8) -> FilePermissions {
+        FilePermissions{bits: (self.bits >> shift) & 0o7}
     }
-    pub fn group(&self) -> FilePermissions {
-        FilePermissions{bits: (self.bits >> 3) & 0o7}
-    }
-    pub fn other(&self) -> FilePermissions {
-        FilePermissions{bits: (self.bits >> 0) & 0o7}
-    }
+    pub fn user(&self) -> FilePermissions { self._get_bits(6) }
+    pub fn group(&self) -> FilePermissions { self._get_bits(3) }
+    pub fn other(&self) -> FilePermissions { self._get_bits(0) }
 
     pub fn build(v: u32) -> Self {
         Self { bits: v & 0o777 }
@@ -42,22 +39,9 @@ impl PermissionsMask {
 
 impl fmt::Display for FilePermissions {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.contains(FilePermissions::PF_R) {
-            write!(f, "r")?;
-        } else {
-            write!(f, "-")?;
-        }
-        if self.contains(FilePermissions::PF_W) {
-            write!(f, "w")?;
-        } else {
-            write!(f, "-")?;
-        }
-        if self.contains(FilePermissions::PF_X) {
-            write!(f, "x")?;
-        } else {
-            write!(f, "-")?;
-        }
-    Ok(())
+        let perms = [(FilePermissions::PF_R, "r"), (FilePermissions::PF_W, "w"), (FilePermissions::PF_X, "x")];
+        let formatted = perms.iter().map(|(p, s)| if self.contains(*p) {s} else {"-"}).collect::<Vec<&str>>().join("");
+        write!(f, "{}", formatted)
     }
 }
 
