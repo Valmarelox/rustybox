@@ -208,6 +208,7 @@ fn main() -> Result<(), std::io::Error> {
 mod tests {
     use super::*;
     use std::process::Command;
+    use users::get_current_uid;
 
     #[test]
     fn test_current_file_metadata() -> Result<(), io::Error>{
@@ -216,6 +217,7 @@ mod tests {
             .arg("truncate -s4 /tmp/a; chmod 0644 /tmp/a")
             .output()
             .expect("failed to execute process");
+        let good_uid: u32 = get_current_uid();
         let meta = get_meta(&PathBuf::from("/tmp/a"));
         match meta {
             Some(meta) => {
@@ -223,7 +225,7 @@ mod tests {
                 // TODO: What is the highest bit?
                 // TODO: also this is bad that this is hardcoded
                 assert_eq!(meta.permissions.bits, 0o100644);
-                assert_eq!(meta.uid, 1000);
+                assert_eq!(meta.uid, good_uid);
                 assert_eq!(meta.size, 4);
                 assert_eq!(meta.name, "a");
             }
