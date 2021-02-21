@@ -55,7 +55,8 @@ impl fmt::Display for PermissionsMask{
 
 #[cfg(test)]
 mod tests {
-    use super::FilePermissions;
+    use super::{FilePermissions, PermissionsMask};
+    use std::fs::Permissions;
 
     #[test]
     fn test_file_permissions_values() {
@@ -74,5 +75,21 @@ mod tests {
         assert_eq!(format!("{}", (FilePermissions::PF_W | FilePermissions::PF_X)), "-wx");
         assert_eq!(format!("{}", (FilePermissions::PF_R | FilePermissions::PF_W | FilePermissions::PF_X)), "rwx");
 
+    }
+
+    #[test]
+    fn test_permissions_mask_groups() {
+        for i in 0..0o1000 {
+            let mask = PermissionsMask::build(i);
+            assert_eq!(mask.bits, (mask.user().bits << 6 | mask.group().bits << 3 | mask.other().bits));
+        }
+    }
+
+    #[test]
+    fn test_permissions_format() {
+        for i in 0..0o1000 {
+            let mask = PermissionsMask::build(i);
+            assert_eq!(format!("{}", mask), format!("{}{}{}", mask.user(), mask.group(), mask.other()));
+        }
     }
 }

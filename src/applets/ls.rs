@@ -5,7 +5,7 @@ use core::result::Result;
 use core::result::Result::Ok;
 use std::io;
 use std::path::PathBuf;
-use crate::librb::file::filemeta::{FileMetadata, get_meta};
+use crate::librb::file::filemeta::{FileMetadata};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
@@ -26,7 +26,7 @@ fn get_arguments() -> ArgMatches<'static>  {
 fn list_dirs(path: &PathBuf, fmt: &DisplayFormat) -> Result<(), io::Error>{
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
-            if let Some(meta) = get_meta(&entry.path()) {
+            if let Some(meta) = FileMetadata::for_path(&entry.path()) {
                 if fmt.should_diplay(&meta) {
                     println!("{}", meta)
                 }

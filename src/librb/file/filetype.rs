@@ -1,6 +1,7 @@
 use std::fs::Metadata;
 use std::convert::TryFrom;
 use num_enum::TryFromPrimitiveError;
+use num_enum::TryFromPrimitive;
 use std::os::unix::fs::MetadataExt;
 
 #[derive(PartialEq, Display, Debug,TryFromPrimitive)]
@@ -27,5 +28,19 @@ impl TryFrom<Metadata> for FileType {
 
     fn try_from(f: Metadata) -> Result<Self, Self::Error> {
         FileType::try_from(f.mode() & 0o170000)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::FileType;
+    use std::convert::TryFrom;
+    use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
+    use std::io;
+
+    #[test]
+    fn test_file_type_try_from() {
+        let f = FileType::try_from(0o140000).ok().unwrap();
+        assert_eq!(FileType::Socket, f);
     }
 }

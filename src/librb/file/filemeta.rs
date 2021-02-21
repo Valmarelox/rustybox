@@ -29,6 +29,27 @@ impl FileMetadata {
     pub fn is_hidden(&self) -> bool {
         self.name.starts_with(".")
     }
+    pub fn for_path(p: &Path) -> Option<FileMetadata> {
+        if let Ok(f) = fs::symlink_metadata(p) {
+            let name = p.file_name().unwrap().to_str().unwrap().to_string();
+            let size = f.len();
+            let uid = f.uid();
+            let mode = f.permissions().mode();
+            if let Ok(mtime) = f.modified() {
+                if let Ok(file_type) = FileType::try_from(f) {
+                    return Some(FileMetadata {
+                        name,
+                        permissions: PermissionsMask::build(mode),
+                        size,
+                        mtime,
+                        uid,
+                        file_type,
+                    });
+                }
+            }
+        }
+        return None;
+    }
 }
 
 impl fmt::Display for FileMetadata {
@@ -57,27 +78,6 @@ impl fmt::Display for FileMetadata {
     }
 }
 
-pub fn get_meta(p: &Path) -> Option<FileMetadata> {
-    if let Ok(f) = fs::symlink_metadata(p) {
-        let name = p.file_name().unwrap().to_str().unwrap().to_string();
-        let size = f.len();
-        let uid = f.uid();
-        let mode = f.permissions().mode();
-        if let Ok(mtime) = f.modified() {
-            if let Ok(file_type) = FileType::try_from(f) {
-                return Some(FileMetadata {
-                    name,
-                    permissions: PermissionsMask::build(mode),
-                    size,
-                    mtime,
-                    uid,
-                    file_type,
-                });
-            }
-        }
-    }
-    return None;
-}
 #[cfg(test)]
 mod tests {
     use std::io;
@@ -86,9 +86,9 @@ mod tests {
 
     use users::get_current_uid;
     use super::FileType;
-    use super::get_meta;
     use super::PermissionsMask;
     use std::fs::set_permissions;
+    use crate::librb::file::filemeta::FileMetadata;
 
     struct TestCaseData {
         path: String,
@@ -122,7 +122,7 @@ mod tests {
     #[test]
     fn test_current_file_metadata() -> Result<(), io::Error>{
         let case = setup_test();
-        let meta = get_meta(&PathBuf::from(case.path));
+        let meta = FileMetadata::for_path(&PathBuf::from(case.path));
         match meta {
             Some(meta) => {
                 assert_eq!(meta.file_type, FileType::RegularFile);
