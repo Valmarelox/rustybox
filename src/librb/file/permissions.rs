@@ -56,7 +56,6 @@ impl fmt::Display for PermissionsMask{
 #[cfg(test)]
 mod tests {
     use super::{FilePermissions, PermissionsMask};
-    use std::fs::Permissions;
 
     #[test]
     fn test_file_permissions_values() {

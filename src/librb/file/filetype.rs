@@ -4,7 +4,7 @@ use num_enum::TryFromPrimitiveError;
 use num_enum::TryFromPrimitive;
 use std::os::unix::fs::MetadataExt;
 
-#[derive(PartialEq, Display, Debug,TryFromPrimitive)]
+#[derive(PartialEq, Clone, Copy, Display, Debug,TryFromPrimitive)]
 #[repr(u32)]
 pub enum FileType {
     #[strum(serialize="s")]
@@ -35,12 +35,15 @@ impl TryFrom<Metadata> for FileType {
 mod tests {
     use super::FileType;
     use std::convert::TryFrom;
-    use num_enum::{TryFromPrimitive, TryFromPrimitiveError};
-    use std::io;
+    use crate::librb::file::filemeta::FileMetadata;
 
     #[test]
     fn test_file_type_try_from() {
-        let f = FileType::try_from(0o140000).ok().unwrap();
-        assert_eq!(FileType::Socket, f);
+        for x in [FileType::Socket, FileType::RegularFile, FileType::Directory, FileType::BlockDevice, FileType::CharDevice, FileType::Fifo, FileType::SymbolicLink].iter() {
+            let x = *x;
+            let y = x as u32;
+            let f = FileType::try_from(y).ok().unwrap(); // | 0xffff0fff
+            assert_eq!(x, f);
+        }
     }
 }

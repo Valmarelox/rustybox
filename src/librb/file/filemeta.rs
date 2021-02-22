@@ -87,8 +87,7 @@ mod tests {
     use users::get_current_uid;
     use super::FileType;
     use super::PermissionsMask;
-    use std::fs::set_permissions;
-    use crate::librb::file::filemeta::FileMetadata;
+    use super::FileMetadata;
 
     struct TestCaseData {
         path: String,
