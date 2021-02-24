@@ -79,7 +79,7 @@ impl fmt::Display for FileMetadata {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use std::io;
     use std::path::PathBuf;
     use std::process::{Command, Output};
@@ -89,7 +89,7 @@ mod tests {
     use super::PermissionsMask;
     use super::FileMetadata;
 
-    struct TestCaseData {
+    pub struct TestCaseData {
         path: String,
         name: String,
         size: u64,
@@ -105,7 +105,7 @@ mod tests {
             .expect("failed to execute process")
     }
 
-    fn setup_test() -> TestCaseData {
+    pub fn setup_test() -> TestCaseData {
         let case = TestCaseData {
             path: "/tmp/a".to_string(),
             name: "a".to_string(),

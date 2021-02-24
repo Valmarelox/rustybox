@@ -12,8 +12,8 @@ use strum_macros::EnumString;
 fn get_arguments() -> ArgMatches<'static>  {
     App::new("rustybox")
         .version("0.0.1")
-        .author("Efi Weiss <valmarelox@gmail.com>")
-        .about("A not that busy (yet!) and still a bit rusty box")
+        .author("efi weiss <valmarelox@gmail.com>")
+        .about("a not that busy (yet!) and still a bit rusty box")
         .arg(
             Arg::with_name("all").short("-a").long("-all").takes_value(false).help("show hidden and 'dot' files")
         ).arg(
@@ -85,5 +85,15 @@ fn build_display_fmt(matches: &ArgMatches) -> DisplayFormat {
     DisplayFormat {
         show_hidden: matches.is_present("all"),
         color: ColorOption::from_str(&matches.value_of("color").unwrap_or("auto").to_string()).unwrap()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::librb::file::filemeta::tests::setup_test;
+
+    #[test]
+    fn test_print_dir() {
+        setup_test();
     }
 }
