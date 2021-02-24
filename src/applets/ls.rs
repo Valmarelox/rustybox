@@ -8,7 +8,6 @@ use std::path::PathBuf;
 use crate::librb::file::filemeta::{FileMetadata};
 use std::str::FromStr;
 use strum_macros::EnumString;
-use std::io::Error;
 
 pub fn subcommand() -> App<'static, 'static>  {
     SubCommand::with_name("ls")

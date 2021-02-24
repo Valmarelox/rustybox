@@ -24,10 +24,6 @@ pub fn subcommand() -> App<'static, 'static> {
     )
 }
 
-fn get_arguments() -> ArgMatches<'static>  {
-    subcommand().get_matches()
-}
-
 fn touch_files(files: Values, args: &TouchArguments) -> Result<(), String>{
     for f in  files {
         touch_file(f.to_string(), args).or(Err(format!("Failed to touch {}", f).to_string()))?;
