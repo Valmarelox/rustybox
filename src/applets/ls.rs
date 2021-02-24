@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, Values};
+use clap::{App, Arg, ArgMatches, Values, SubCommand};
 use core::option::Option::{None, Some};
 use core::option::Option;
 use core::result::Result;
@@ -8,19 +8,18 @@ use std::path::PathBuf;
 use crate::librb::file::filemeta::{FileMetadata};
 use std::str::FromStr;
 use strum_macros::EnumString;
+use std::io::Error;
 
-fn get_arguments() -> ArgMatches<'static>  {
-    App::new("rustybox")
-        .version("0.0.1")
-        .author("efi weiss <valmarelox@gmail.com>")
-        .about("a not that busy (yet!) and still a bit rusty box")
+pub fn subcommand() -> App<'static, 'static>  {
+    SubCommand::with_name("ls")
+        .about("List files")
         .arg(
             Arg::with_name("all").short("-a").long("-all").takes_value(false).help("show hidden and 'dot' files")
         ).arg(
-            Arg::with_name("color").short("-c").long("-color").takes_value(true).possible_values(&["never", "auto", "always"]).help("show hidden and 'dot' files")
+            Arg::with_name("color").short("-c").long("-color").takes_value(true).possible_values(&["never", "auto", "always"]).help("Color the output")
         ).arg(
-            Arg::with_name("directories").multiple(true)
-    ).get_matches()
+            Arg::with_name("directories").help("Files/Directories to list").multiple(true).index(1)
+    )
 }
 
 fn list_dirs(path: &PathBuf, fmt: &DisplayFormat) -> Result<(), io::Error>{
@@ -52,11 +51,11 @@ fn print_dirs(dirs: Option<Values>, fmt: &DisplayFormat) -> Result<(), std::io::
     Ok(())
 }
 
-pub fn ls_main() -> Result<(), io::Error> {
-    let matches = get_arguments();
-    let fmt = build_display_fmt(&matches);
+pub fn ls_main(matches: Option<&ArgMatches>) -> Result<(), String> {
+    let matches = matches.ok_or("wtf")?;
+    let fmt = build_display_fmt(matches);
     let dirs = matches.values_of("directories");
-    print_dirs(dirs, &fmt)
+    print_dirs(dirs, &fmt).or(Err("print failed".to_string()))
 }
 
 

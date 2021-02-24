@@ -1,4 +1,4 @@
-use clap::{App, Arg, ArgMatches, Values};
+use clap::{App, Arg, ArgMatches, Values, SubCommand};
 use std::fs::File;
 use std::io;
 
@@ -14,25 +14,33 @@ fn touch_file(name: String, args: &TouchArguments) -> Result<(), io::Error> {
     Ok(())
 }
 
-fn get_arguments() -> ArgMatches<'static>  {
-    App::new("touch")
-        .version("0.0.1")
-        .author("Efi Weiss <valmarelox@gmail.com>")
-        .about("A not that busy (yet!) and still a bit rusty box")
+pub fn subcommand() -> App<'static, 'static> {
+    SubCommand::with_name("touch")
+        .about("Touch a file")
         .arg(
             Arg::with_name("create").short("-c").long("--no-create").takes_value(false).help("don't create file")
         ).arg(
-            Arg::with_name("files").multiple(true)
-    ).get_matches()
+        Arg::with_name("files").multiple(true).index(1).required(true)
+    )
 }
 
-pub fn touch_main() -> Result<(), io::Error>{
-    let args = get_arguments();
-    let ta = TouchArguments { create_file: !args.is_present("create")};
-    for f in args.values_of("files").ok_or(io::Error::from_raw_os_error(133))? {
-        touch_file(f.to_string(), &ta)?;
+fn get_arguments() -> ArgMatches<'static>  {
+    subcommand().get_matches()
+}
+
+fn touch_files(files: Values, args: &TouchArguments) -> Result<(), String>{
+    for f in  files {
+        touch_file(f.to_string(), args).or(Err(format!("Failed to touch {}", f).to_string()))?;
     }
     Ok(())
+}
+
+pub fn touch_main(args: Option<&ArgMatches>) -> Result<(), String>{
+    // OK because argument is required
+    let args = args.unwrap();
+    let ta = TouchArguments { create_file: !args.is_present("create")};
+    let files = args.values_of("files").unwrap();
+    touch_files(files, &ta)
 }
 
 #[cfg(test)]
