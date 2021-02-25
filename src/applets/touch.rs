@@ -42,7 +42,9 @@ pub fn touch_main(args: Option<&ArgMatches>) -> Result<(), String>{
 #[cfg(test)]
 mod tests {
     use std::io;
-    use crate::applets::touch::{touch_file, TouchArguments};
+    use super::{touch_main, touch_file, TouchArguments, subcommand};
+    use std::ffi::{OsString, OsStr};
+    use std::path::Path;
 
     #[test]
     fn test_create_touch() {
@@ -53,5 +55,27 @@ mod tests {
         assert_eq!(res.raw_os_error().unwrap(), 2);
         let res = touch_file("/tmp/should_create".to_string(), &TouchArguments { create_file: false }).err();
         assert!(res.is_none());
+    }
+
+    #[test]
+    fn test_subcommand_fail_to_create() {
+        let name = "hello";
+        let args: [&OsStr; 3] = [OsStr::new("touch"), OsStr::new("-c"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+        assert!(matches.is_present("create"));
+        assert_eq!(touch_main(Some(&matches)).unwrap_err(), format!("Failed to touch {}", name));
+    }
+
+    #[test]
+    fn test_subcommand_create() {
+        let name = "/tmp/chello";
+        let args: [&OsStr; 2] = [OsStr::new("touch"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+        assert!(!Path::new(name).exists());
+        assert!(!matches.is_present("create"));
+        assert!(touch_main(Some(&matches)).is_ok());
+        assert!(Path::new(name).exists());
     }
 }
