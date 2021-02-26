@@ -45,6 +45,7 @@ mod tests {
     use super::{touch_main, touch_file, TouchArguments, subcommand};
     use std::ffi::{OsString, OsStr};
     use std::path::Path;
+    use std::process::Command;
 
     #[test]
     fn test_create_touch() {
@@ -73,6 +74,11 @@ mod tests {
         let args: [&OsStr; 2] = [OsStr::new("touch"), OsStr::new(name)];
         let cmd = subcommand();
         let matches = cmd.get_matches_from(args.iter());
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("rm -f {name}", name=name))
+            .output()
+            .expect("failed to execute process");
         assert!(!Path::new(name).exists());
         assert!(!matches.is_present("create"));
         assert!(touch_main(Some(&matches)).is_ok());
