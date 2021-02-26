@@ -12,17 +12,18 @@ use std::fs;
 use std::path::Path;
 use std::time::SystemTime;
 use chrono::Duration;
-use users::get_user_by_uid;
+use users::{get_user_by_uid, get_group_by_gid};
 use crate::librb::file::filetype::FileType;
 use crate::librb::file::permissions::{PermissionsMask};
 
 pub struct FileMetadata {
-    name: String,
+    pub name: String,
     permissions: PermissionsMask,
     size: u64,
     file_type: FileType,
     mtime: SystemTime,
-    uid: u32
+    uid: Uid,
+    gid: Gid,
 }
 
 impl FileMetadata {
@@ -31,9 +32,11 @@ impl FileMetadata {
     }
     pub fn for_path(p: &Path) -> Option<FileMetadata> {
         if let Ok(f) = fs::symlink_metadata(p) {
-            let name = p.file_name().unwrap().to_str().unwrap().to_string();
+            let filename = p.components().last().unwrap().as_os_str().to_str().unwrap().to_string();
+            let name : String = filename;
             let size = f.len();
-            let uid = f.uid();
+            let uid = Uid { uid: f.uid() };
+            let gid = Gid { gid: f.gid() };
             let mode = f.permissions().mode();
             if let Ok(mtime) = f.modified() {
                 if let Ok(file_type) = FileType::try_from(f) {
@@ -43,12 +46,74 @@ impl FileMetadata {
                         size,
                         mtime,
                         uid,
+                        gid,
                         file_type,
                     });
                 }
             }
         }
         return None;
+    }
+    pub fn short_name(&self) -> &String {
+        &self.name
+    }
+}
+
+pub trait UidgidDisplay {
+    fn get_name(&self) -> Option<String>;
+    fn value(&self) -> u32;
+    fn display_string(&self) -> String {
+        if let Some(name) = self.get_name() {
+            name.to_string()
+        } else {
+            format!("{}", self.value())
+        }
+    }
+}
+
+pub struct Uid {
+    uid: u32
+}
+
+pub struct Gid{
+    gid: u32
+}
+
+impl fmt::Display for Uid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.display_string())
+    }
+}
+
+impl fmt::Display for Gid {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.display_string())
+
+    }
+}
+
+impl UidgidDisplay for Uid {
+    fn get_name(&self) -> Option<String> {
+        if let Some(s) = get_user_by_uid(self.uid)?.name().to_str() {
+            return Some(s.to_string());
+        }
+        return None;
+    }
+
+    fn value(&self) -> u32 {
+        return self.uid;
+    }
+}
+impl UidgidDisplay for Gid {
+    fn get_name(&self) -> Option<String> {
+        if let Some(s) = get_group_by_gid(self.gid)?.name().to_str() {
+            return Some(s.to_string());
+        }
+        return None;
+    }
+
+    fn value(&self) -> u32 {
+        return self.gid;
     }
 }
 
@@ -57,16 +122,9 @@ impl fmt::Display for FileMetadata {
         write!(f, "{}", self.file_type)?;
         write!(f, "{} ", self.permissions)?;
         write!(f, "{:<8} ", self.size)?;
+        write!(f, "{:<8} ", self.uid)?;
+        write!(f, "{:<8} ", self.gid)?;
 
-        if let Some(user) = get_user_by_uid(self.uid) {
-            if let Some(username) = user.name().to_str() {
-                write!(f, "{:<8}", username)?;
-            } else {
-                write!(f, "{:<8}", self.uid)?;
-            }
-        } else {
-            write!(f, "{:<8}", self.uid)?;
-        }
         let date: DateTime<Local> = self.mtime.into();
         // TODO: Move to a seperate type
         if (date - Local::now()) > Duration::seconds( 24 * 60 * 60 ) {
@@ -74,7 +132,7 @@ impl fmt::Display for FileMetadata {
         } else {
             write!(f, "{:<8} ", date.format("%d %b %H:%M"))?;
         }
-        write!(f, "{:<16}", self.name)
+        write!(f, "{}", self.name)
     }
 }
 
@@ -84,7 +142,7 @@ pub mod tests {
     use std::path::PathBuf;
     use std::process::{Command, Output};
 
-    use users::get_current_uid;
+    use users::{get_current_uid, get_current_gid};
     use super::FileType;
     use super::PermissionsMask;
     use super::FileMetadata;
@@ -94,7 +152,8 @@ pub mod tests {
         name: String,
         size: u64,
         permissions: PermissionsMask,
-        uid: u32
+        uid: u32,
+        gid: u32
     }
 
     fn create_file(data: &TestCaseData) -> Output {
@@ -112,7 +171,8 @@ pub mod tests {
             size: 4,
             permissions: PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
                 PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH,
-            uid: get_current_uid()
+            uid: get_current_uid(),
+            gid: get_current_gid()
         };
         create_file(&case);
         case
@@ -128,10 +188,12 @@ pub mod tests {
                 // TODO: What is the highest bit?
                 // TODO: also this is bad that this is hardcoded
                 assert_eq!(meta.permissions,
-                           PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
-                               PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH
+                           //PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
+                           //    PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH
+                           case.permissions
                 );
-                assert_eq!(meta.uid, case.uid);
+                assert_eq!(meta.uid.uid, case.uid);
+                assert_eq!(meta.gid.gid, case.gid);
                 assert_eq!(meta.size, case.size);
                 assert_eq!(meta.name, case.name);
             }

@@ -11,7 +11,8 @@ pub enum FileType {
     Socket          = 0o140000,
     #[strum(serialize="l")]
     SymbolicLink    = 0o120000,
-    #[strum(serialize=".")]
+    // - is compatible with classic ls, while . is used by exa
+    #[strum(serialize="-")]
     RegularFile     = 0o100000,
     #[strum(serialize="b")]
     BlockDevice     = 0o060000,
