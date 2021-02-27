@@ -135,77 +135,60 @@ mod tests {
     use std::io;
     use std::process::Command;
 
+    fn create_file(name: &str, content: &str) {
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
+            .output()
+            .expect("failed to execute process");
+    }
+
+    fn run_get_output(args: Vec<&OsStr>) -> Vec<u8> {
+        let mut s : Vec<u8> = Vec::new();
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+        _cat_main(Some(&matches), &mut s);
+        return s;
+    }
+
+    fn run_cat_test_case(name: &str, content: &str, args: Vec<&OsStr>, expected_output: &str) {
+        create_file(name, content);
+        let s = run_get_output(args);
+        assert_eq!(s, expected_output.as_bytes());
+    }
+
     #[test]
     fn test_cat_basic() {
         let name = "/tmp/rustybox-cat-test1";
         let content = "why can I not do this like a human person";
-        Command::new("sh")
-            .arg("-c")
-            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
-            .output()
-            .expect("failed to execute process");
-        let mut s : Vec<u8> = Vec::new();
-        let args: [&OsStr; 2] = [OsStr::new("cat"), OsStr::new(name)];
-        let cmd = subcommand();
-        let matches = cmd.get_matches_from(args.iter());
-
-        _cat_main(Some(&matches), &mut s);
-        assert_eq!(s, content.as_bytes());
+        let args = vec![OsStr::new("cat"), OsStr::new(name)];
+        run_cat_test_case(name, content, args, content);
     }
+
     #[test]
     fn test_cat_all_numbers() {
         let name = "/tmp/rustybox-cat-test2";
         let content = "why can I not do this like a human person\nThis is another line\n\nWe got past the empty line\n";
-        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n     3  \n     4  We got past the empty line\n";
-        Command::new("sh")
-            .arg("-c")
-            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
-            .output()
-            .expect("failed to execute process");
-        let mut s : Vec<u8> = Vec::new();
-        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-n"), OsStr::new(name)];
-        let cmd = subcommand();
-        let matches = cmd.get_matches_from(args.iter());
-
-        _cat_main(Some(&matches), &mut s);
-        assert_eq!(s, output_expected.as_bytes());
+        let expected_output = "     1  why can I not do this like a human person\n     2  This is another line\n     3  \n     4  We got past the empty line\n";
+        let args = vec![OsStr::new("cat"), OsStr::new("-n"), OsStr::new(name)];
+        run_cat_test_case(name, content, args, expected_output);
     }
 
     #[test]
     fn test_cat_some_numbers() {
         let name = "/tmp/rustybox-cat-test3";
         let content = "why can I not do this like a human person\nThis is another line\n\nWe got past the empty line\n";
-        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n\n     3  We got past the empty line\n";
-        Command::new("sh")
-            .arg("-c")
-            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
-            .output()
-            .expect("failed to execute process");
-        let mut s : Vec<u8> = Vec::new();
-        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
-        let cmd = subcommand();
-        let matches = cmd.get_matches_from(args.iter());
-
-        _cat_main(Some(&matches), &mut s);
-        assert_eq!(s, output_expected.as_bytes());
+        let expected_output = "     1  why can I not do this like a human person\n     2  This is another line\n\n     3  We got past the empty line\n";
+        let args = vec![OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
+        run_cat_test_case(name, content, args, expected_output);
     }
 
     #[test]
     fn test_whitespace_is_empty() {
         let name = "/tmp/rustybox-cat-test4";
         let content = "why can I not do this like a human person\nThis is another line\n  \nWe got past the almost-empty line\n";
-        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n     3    \n     4  We got past the almost-empty line\n";
-        Command::new("sh")
-            .arg("-c")
-            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
-            .output()
-            .expect("failed to execute process");
-        let mut s : Vec<u8> = Vec::new();
-        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
-        let cmd = subcommand();
-        let matches = cmd.get_matches_from(args.iter());
-
-        _cat_main(Some(&matches), &mut s);
-        assert_eq!(s, output_expected.as_bytes());
+        let expected_output = "     1  why can I not do this like a human person\n     2  This is another line\n     3    \n     4  We got past the almost-empty line\n";
+        let args = vec![OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
+        run_cat_test_case(name, content, args, expected_output);
     }
 }
