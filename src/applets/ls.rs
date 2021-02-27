@@ -165,7 +165,12 @@ mod tests {
         let mut output : Vec<u8> = Vec::new();
         assert!(_ls_main(Some(&matches), &mut output).is_ok());
         println!("wtf {:?}", output);
-        assert_eq!(str::from_utf8(&output).unwrap(), "b a ");
+        let output = str::from_utf8(&output).unwrap();
+        match output {
+            "a b " => (),
+            "b a " => (),
+            _ => assert_eq!(output, "a b "), // Will always fail
+        }
     }
     #[test]
     fn test_print_dir_hidden_file() {
@@ -179,6 +184,11 @@ mod tests {
         let mut output : Vec<u8> = Vec::new();
         assert!(_ls_main(Some(&matches), &mut output).is_ok());
         println!("wtf {:?}", output);
-        assert_eq!(str::from_utf8(&output).unwrap(), ".c b a ");
+        let output = str::from_utf8(&output).unwrap();
+        match output {
+            ".c a b " => (),
+            ".c b a " => (),
+            _ => assert_eq!(output, ".c a b "), // Will always fail
+        }
     }
 }
