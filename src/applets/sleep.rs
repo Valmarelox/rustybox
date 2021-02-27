@@ -85,5 +85,9 @@ mod tests {
         let mut a: [&'static str; 1] = ["1k"];
         let mut vecy = myvec { iter: a.iter()};
         assert!(sum_time_safe(&mut vecy).is_err());
+
+        let mut a: [&'static str; 1] = ["LOL"];
+        let mut vecy = myvec { iter: a.iter()};
+        assert!(sum_time_safe(&mut vecy).is_err());
     }
 }
