@@ -1,11 +1,8 @@
 use clap::{App, Arg, ArgMatches, Values, SubCommand};
 use core::option::Option::{None, Some};
 use core::option::Option;
-use std::os::unix::fs::DirEntryExt;
 use core::result::Result;
 use core::result::Result::Ok;
-use std::io::Write as IoWrite;
-use std::fmt::Write as FmtWrite;
 use std::io;
 use std::path::PathBuf;
 use crate::librb::file::filemeta::{FileMetadata};
@@ -116,12 +113,10 @@ fn build_display_fmt(matches: &ArgMatches) -> DisplayFormat {
 
 #[cfg(test)]
 mod tests {
-    use crate::librb::file::filemeta::tests::setup_test;
     use std::process::{Command, Output};
     use super::{_ls_main, subcommand, build_display_fmt};
     use std::ffi::OsStr;
     use std::str;
-    use users::{get_user_by_uid, get_current_uid};
     use crate::applets::ls::ColorOption;
 
     #[test]

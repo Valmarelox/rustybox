@@ -27,7 +27,7 @@ fn get_value_from(x: &str) -> Result<u32, String> {
     }
 }
 
-fn sum_time_safe<'a>(mut values: &'a mut impl Iterator<Item = &'a str>) -> Result<u32, String> {
+fn sum_time_safe<'a>(values: &'a mut impl Iterator<Item = &'a str>) -> Result<u32, String> {
     values.try_fold(0, |acc, x: &str| -> Result<u32, String> {
         Ok(acc + get_value_from(x)?)
     })
@@ -48,17 +48,13 @@ pub fn sleep_main(matches: Option<&ArgMatches>) -> Result<(), String>{
 mod tests {
     use super::sum_time_safe;
     use std::slice::Iter;
-
-    fn test<'a>(mut a: &mut impl Iterator<Item = &'a &'a str>) {
-
-    }
-    struct myvec<'a> {
+    struct Myvec<'a> {
         iter: Iter<'a, &'a str>
     }
 
     // TODO: I miss something in how the generics work because for the love of god I wasn't able to
     // get array.iter() to be passedd into sum_time_safe - something with &&str and &str
-    impl<'a> Iterator for myvec<'a> {
+    impl<'a> Iterator for Myvec<'a> {
         type Item = &'a str;
 
         fn next(&mut self) -> Option<&'a str> {
@@ -74,20 +70,20 @@ mod tests {
 
     #[test]
     fn test_calculate_sleep_time() {
-        let mut a: [&'static str; 1] = ["1s"];
-        let mut vecy = myvec { iter: a.iter()};
+        let a: [&'static str; 1] = ["1s"];
+        let mut vecy = Myvec { iter: a.iter()};
         assert_eq!(sum_time_safe(&mut vecy).unwrap(), 1);
 
-        let mut a: [&'static str; 3] = ["1m", "5s", "6"];
-        let mut vecy = myvec { iter: a.iter()};
+        let a: [&'static str; 3] = ["1m", "5s", "6"];
+        let mut vecy = Myvec { iter: a.iter()};
         assert_eq!(sum_time_safe(&mut vecy).unwrap(), 71);
 
-        let mut a: [&'static str; 1] = ["1k"];
-        let mut vecy = myvec { iter: a.iter()};
+        let a: [&'static str; 1] = ["1k"];
+        let mut vecy = Myvec { iter: a.iter()};
         assert!(sum_time_safe(&mut vecy).is_err());
 
-        let mut a: [&'static str; 1] = ["LOL"];
-        let mut vecy = myvec { iter: a.iter()};
+        let a: [&'static str; 1] = ["LOL"];
+        let mut vecy = Myvec { iter: a.iter()};
         assert!(sum_time_safe(&mut vecy).is_err());
     }
 }

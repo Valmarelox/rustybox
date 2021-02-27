@@ -7,7 +7,7 @@ struct TouchArguments {
 }
 
 fn touch_file(name: String, args: &TouchArguments) -> Result<(), io::Error> {
-    let f = match args.create_file {
+    match args.create_file {
         true => File::create(name)?,
         false => File::open(name)?,
     };
@@ -41,9 +41,8 @@ pub fn touch_main(args: Option<&ArgMatches>) -> Result<(), String>{
 
 #[cfg(test)]
 mod tests {
-    use std::io;
     use super::{touch_main, touch_file, TouchArguments, subcommand};
-    use std::ffi::{OsString, OsStr};
+    use std::ffi::OsStr;
     use std::path::Path;
     use std::process::Command;
 

@@ -36,7 +36,6 @@ impl TryFrom<Metadata> for FileType {
 mod tests {
     use super::FileType;
     use std::convert::TryFrom;
-    use crate::librb::file::filemeta::FileMetadata;
 
     #[test]
     fn test_file_type_try_from() {

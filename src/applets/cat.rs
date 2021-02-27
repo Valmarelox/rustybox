@@ -35,7 +35,7 @@ impl<B: BufRead> Iterator for FullLines<B> {
     }
 }
 
-fn get_reader(filename: &String) -> io::Result<Box<BufRead>> {
+fn get_reader(filename: &String) -> io::Result<Box<dyn BufRead>> {
     if filename == "-" {
         Ok(Box::new(io::BufReader::new(io::stdin())))
     } else {
@@ -87,7 +87,7 @@ impl DisplayFormat {
             }
         }
     }
-    fn write_line(&mut self, line: String, writer: &mut std::io::Write) -> Result<(), io::Error> {
+    fn write_line(&mut self, line: String, writer: &mut dyn std::io::Write) -> Result<(), io::Error> {
         if self.line_numbers == NumberLineOption::All || (self.line_numbers == NumberLineOption::OnlyNoneEmpty && !line.trim_end_matches("\n").is_empty()) {
             write!(writer, "{n:>6}  {line}", n=self.current_line, line=line);
             self.current_line += 1;
@@ -132,7 +132,6 @@ pub fn cat_main(matches: Option<&ArgMatches>) -> Result<(), String>{
 mod tests {
     use std::ffi::OsStr;
     use super::{subcommand, _cat_main};
-    use std::io;
     use std::process::Command;
 
     fn create_file(name: &str, content: &str) {
