@@ -16,8 +16,26 @@ pub fn subcommand() -> App<'static, 'static>  {
             Arg::with_name("files").multiple(true).index(1)
         )
 }
+struct FullLines<B> {
+    buf: B,
+}
 
-fn read_lines(filename: &String) -> io::Result<Box<BufRead>> {
+impl<B: BufRead> Iterator for FullLines<B> {
+    type Item = io::Result<String>;
+
+    fn next(&mut self) -> Option<io::Result<String>> {
+        let mut buf = String::new();
+        match self.buf.read_line(&mut buf) {
+            Ok(0) => None,
+            Ok(_n) => {
+                Some(Ok(buf))
+            }
+            Err(e) => Some(Err(e)),
+        }
+    }
+}
+
+fn get_reader(filename: &String) -> io::Result<Box<BufRead>> {
     if filename == "-" {
         Ok(Box::new(io::BufReader::new(io::stdin())))
     } else {
@@ -28,8 +46,9 @@ fn read_lines(filename: &String) -> io::Result<Box<BufRead>> {
 }
 
 fn _output_file(name: &String, fmt: &mut DisplayFormat, writer: &mut impl std::io::Write) -> Result<(), io::Error>{
-    let reader = read_lines(name)?;
-    for line in reader.lines() {
+    let reader = get_reader(name)?;
+    let lines_reader = FullLines { buf: reader };
+    for line in lines_reader {
         if let Ok(line) = line {
             fmt.write_line(line, writer)?;
         }
@@ -69,12 +88,12 @@ impl DisplayFormat {
         }
     }
     fn write_line(&mut self, line: String, writer: &mut std::io::Write) -> Result<(), io::Error> {
-        if self.line_numbers == NumberLineOption::All || (self.line_numbers == NumberLineOption::OnlyNoneEmpty && !line.is_empty()) {
-            writeln!(writer, "{n:>6}  {line}", n=self.current_line, line=line);
+        if self.line_numbers == NumberLineOption::All || (self.line_numbers == NumberLineOption::OnlyNoneEmpty && !line.trim_end_matches("\n").is_empty()) {
+            write!(writer, "{n:>6}  {line}", n=self.current_line, line=line);
             self.current_line += 1;
             Ok(())
         } else {
-            writeln!(writer, "{}", line)
+            write!(writer, "{}", line)
         }
     }
 }
@@ -107,4 +126,86 @@ fn _cat_main(matches: Option<&ArgMatches>, writer: &mut impl std::io::Write) -> 
 
 pub fn cat_main(matches: Option<&ArgMatches>) -> Result<(), String>{
     _cat_main(matches, &mut std::io::stdout())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsStr;
+    use super::{subcommand, _cat_main};
+    use std::io;
+    use std::process::Command;
+
+    #[test]
+    fn test_cat_basic() {
+        let name = "/tmp/rustybox-cat-test1";
+        let content = "why can I not do this like a human person";
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
+            .output()
+            .expect("failed to execute process");
+        let mut s : Vec<u8> = Vec::new();
+        let args: [&OsStr; 2] = [OsStr::new("cat"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+
+        _cat_main(Some(&matches), &mut s);
+        assert_eq!(s, content.as_bytes());
+    }
+    #[test]
+    fn test_cat_all_numbers() {
+        let name = "/tmp/rustybox-cat-test2";
+        let content = "why can I not do this like a human person\nThis is another line\n\nWe got past the empty line\n";
+        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n     3  \n     4  We got past the empty line\n";
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
+            .output()
+            .expect("failed to execute process");
+        let mut s : Vec<u8> = Vec::new();
+        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-n"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+
+        _cat_main(Some(&matches), &mut s);
+        assert_eq!(s, output_expected.as_bytes());
+    }
+
+    #[test]
+    fn test_cat_some_numbers() {
+        let name = "/tmp/rustybox-cat-test3";
+        let content = "why can I not do this like a human person\nThis is another line\n\nWe got past the empty line\n";
+        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n\n     3  We got past the empty line\n";
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
+            .output()
+            .expect("failed to execute process");
+        let mut s : Vec<u8> = Vec::new();
+        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+
+        _cat_main(Some(&matches), &mut s);
+        assert_eq!(s, output_expected.as_bytes());
+    }
+
+    #[test]
+    fn test_whitespace_is_empty() {
+        let name = "/tmp/rustybox-cat-test4";
+        let content = "why can I not do this like a human person\nThis is another line\n  \nWe got past the almost-empty line\n";
+        let output_expected = "     1  why can I not do this like a human person\n     2  This is another line\n     3    \n     4  We got past the almost-empty line\n";
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo -n '{content}' > {name}", name=name, content=content))
+            .output()
+            .expect("failed to execute process");
+        let mut s : Vec<u8> = Vec::new();
+        let args: [&OsStr; 3] = [OsStr::new("cat"), OsStr::new("-b"), OsStr::new(name)];
+        let cmd = subcommand();
+        let matches = cmd.get_matches_from(args.iter());
+
+        _cat_main(Some(&matches), &mut s);
+        assert_eq!(s, output_expected.as_bytes());
+    }
 }
