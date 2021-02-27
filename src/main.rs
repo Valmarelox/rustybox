@@ -8,6 +8,7 @@ use clap::App;
 use crate::core::args::add_generic_info;
 use crate::applets::env::env_main;
 use crate::applets::cat::cat_main;
+use crate::applets::sleep::sleep_main;
 
 
 extern crate chrono;
@@ -24,6 +25,7 @@ fn get_app() -> App<'static, 'static> {
         .subcommand(applets::touch::subcommand())
         .subcommand(applets::env::subcommand())
         .subcommand(applets::cat::subcommand())
+        .subcommand(applets::sleep::subcommand())
 
 }
 
@@ -37,6 +39,7 @@ fn main() -> Result<(), String> {
             "ls" => ls_main(args),
             "env" => env_main(args),
             "cat" => cat_main(args),
+            "sleep" => sleep_main(args),
             cmd => {
                 app.print_long_help().or(Err("Failed to print help"))?;
                 Err(format!("Invalid Command {}", cmd).to_string())
