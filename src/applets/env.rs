@@ -14,6 +14,5 @@ fn _env_main(_: Option<&ArgMatches>, writer: &mut impl std::io::Write) -> io::Re
 }
 
 pub fn env_main(matches: Option<&ArgMatches>) -> Result<(), String>{
-    _env_main(matches, &mut std::io::stdout()).or_else();
-    Ok(())
+    _env_main(matches, &mut std::io::stdout()).or(Err("Failed to run env".to_string()))
 }

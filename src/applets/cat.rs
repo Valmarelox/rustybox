@@ -89,7 +89,7 @@ impl DisplayFormat {
     }
     fn write_line(&mut self, line: String, writer: &mut dyn std::io::Write) -> Result<(), io::Error> {
         if self.line_numbers == NumberLineOption::All || (self.line_numbers == NumberLineOption::OnlyNoneEmpty && !line.trim_end_matches("\n").is_empty()) {
-            write!(writer, "{n:>6}  {line}", n=self.current_line, line=line);
+            write!(writer, "{n:>6}  {line}", n=self.current_line, line=line)?;
             self.current_line += 1;
             Ok(())
         } else {
