@@ -28,7 +28,7 @@ fn display_entry(meta: FileMetadata, fmt: &DisplayFormat, writer: &mut impl std:
         return writeln!(*writer, "{}", meta);
     }
 
-    write!(*writer, "{} ", meta.short_name())
+    write!(*writer, "{}", meta.short_name())
 }
 
 fn list_dirs(path: &PathBuf, fmt: &DisplayFormat, writer: &mut impl std::io::Write) -> Result<(), io::Error>{
@@ -42,10 +42,15 @@ fn list_dirs(path: &PathBuf, fmt: &DisplayFormat, writer: &mut impl std::io::Wri
             display_entry(meta, fmt, writer)?;
         }
     }*/
+    let mut is_first: bool = true;
     for entry in std::fs::read_dir(path)? {
         if let Ok(entry) = entry {
             if let Some(meta) = FileMetadata::for_path(&entry.path()) {
                 if fmt.should_diplay(&meta) {
+                    if !is_first {
+                        write!(*writer, " ").unwrap();
+                    }
+                    is_first = false;
                     display_entry(meta, fmt, writer)?;
                 }
             }
@@ -152,8 +157,8 @@ mod tests {
     fn test_print_dir() {
         // TODO: Create dir with files and check outputs
         // TODO: Create dir with files and check hidden outputs
-        let dir = "/tmp/rustybox-test/ccc";
-        run_cmd(&format!("rm -rf {dir}; mkdir -p {dir}; touch {dir}/a {dir}/b", dir=dir));
+        let dir = "/tmp/rustybox-test/test_print_dir";
+        run_cmd(&format!("rm -rf {dir}; mkdir -p {dir}; touch {dir}/a {dir}/b {dir}/.c", dir=dir));
         let args: [&OsStr; 2] = [OsStr::new("ls"), OsStr::new(dir)];
         let cmd = subcommand();
         let matches = cmd.get_matches_from(args.iter());
@@ -162,17 +167,17 @@ mod tests {
         println!("wtf {:?}", output);
         let output = str::from_utf8(&output).unwrap();
         match output {
-            "a b " => (),
-            "b a " => (),
-            _ => assert_eq!(output, "a b "), // Will always fail
+            "a b" => (),
+            "b a" => (),
+            _ => assert!(false),
         }
     }
     #[test]
     fn test_print_dir_hidden_file() {
         // TODO: Create dir with files and check outputs
         // TODO: Create dir with files and check hidden outputs
-        let dir = "/tmp/rustybox-test/ccc";
-        run_cmd(&format!("rm -rf {dir}; mkdir -p {dir}; touch {dir}/a {dir}/b {dir}/.c", dir=dir));
+        let dir = "/tmp/rustybox-test/test_print_dir_hidden_file";
+        run_cmd(&format!("rm -rf {dir}; mkdir -p {dir}; touch {dir}/a {dir}/.c", dir=dir));
         let args: [&OsStr; 3] = [OsStr::new("ls"), OsStr::new("-a"), OsStr::new(dir)];
         let cmd = subcommand();
         let matches = cmd.get_matches_from(args.iter());
@@ -181,9 +186,9 @@ mod tests {
         println!("wtf {:?}", output);
         let output = str::from_utf8(&output).unwrap();
         match output {
-            ".c a b " => (),
-            ".c b a " => (),
-            _ => assert_eq!(output, ".c a b "), // Will always fail
+            "a .c" => (),
+            ".c a" => (),
+            _ => assert!(false),
         }
     }
 }

@@ -166,8 +166,8 @@ pub mod tests {
 
     pub fn setup_test() -> TestCaseData {
         let case = TestCaseData {
-            path: "/tmp/a".to_string(),
-            name: "a".to_string(),
+            path: "/tmp/rustybox-filemeta-test1".to_string(),
+            name: "rustybox-filemeta-test1".to_string(),
             size: 4,
             permissions: PermissionsMask::S_IRUSR | PermissionsMask::S_IWUSR |
                 PermissionsMask::S_IRGRP | PermissionsMask::S_IROTH,
